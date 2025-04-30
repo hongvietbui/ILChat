@@ -1,4 +1,4 @@
-namespace ILChat.Models;
+namespace ILChat.Utilities;
 
 public class MongoDbSettings
 {

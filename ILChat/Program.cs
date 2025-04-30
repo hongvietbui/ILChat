@@ -1,5 +1,5 @@
 using ILChat.Entities;
-using ILChat.Models;
+using ILChat.Utilities;
 using ILChat.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
