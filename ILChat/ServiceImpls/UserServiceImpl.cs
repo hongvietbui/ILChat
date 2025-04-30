@@ -1,0 +1,86 @@
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
+using ILChat.Entities;
+
+namespace ILChat.Services;
+
+public class UserServiceImpl : ILChat.UserService.UserServiceBase
+{
+    public async override Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
+    {
+        var user = new GetUserOutput
+        {
+            Id = Guid.NewGuid().ToString(),
+            Username = "usernameTest",
+            Name = "Name"
+        };
+
+        return new GetUserResponse
+        {
+            Meta = new BaseResponse
+            {
+                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
+                Message = "Get user successfully",
+                Status = 200
+            },
+            Data = user
+        };
+    }
+
+    public async override Task<CreateUserResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = request.Data.Username,
+            Name = request.Data.Name,
+            Password = request.Data.Password
+        };
+        
+        var userCreated = new GetUserOutput
+        {
+            Id = user.Id.ToString(),
+            Username = request.Data.Username,
+            Name = request.Data.Name
+        };
+
+        return new CreateUserResponse
+        {
+            Meta = new BaseResponse
+            {
+                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
+                Message = "Create user successfully",
+                Status = 200
+            },
+            Data = userCreated
+        };
+    }
+
+    public async override Task<StringBaseResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
+    {
+        return new StringBaseResponse
+        {
+            Data = "",
+            Meta = new BaseResponse
+            {
+                Message = "Delete user successfully",
+                Status = 200,
+                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
+            }
+        };
+    }
+
+    public async override Task<StringBaseResponse> UpdateUser(UpdateUserRequest request, ServerCallContext context)
+    {
+        return new StringBaseResponse
+        {
+            Data = "",
+            Meta = new BaseResponse
+            {
+                Message = "Update user successfully",
+                Status = 200,
+                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
+            }
+        };
+    }
+}
