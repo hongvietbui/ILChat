@@ -10,23 +10,22 @@ public interface IRepository<T> where T : class
     Task AddRangeAsync(IEnumerable<T> entities);
     #endregion
     #region Read
-    IQueryable<T> GetAll();
-    IQueryable<T> GetAll(Expression<Func<T, bool>> filter = null, params Expression<Func<T, object>>[] includes);
+    Pagination<T> GetAll(GetAllQueryOptions<T> options);
     Task<Pagination<T>> GetAllAsync(GetAllQueryOptions<T> options);
     Task<bool> AnyAsync(Expression<Func<T, bool>> filter);
     Task<bool> AnyAsync();
-    Task<T> GetByIdAsync(object id);
+    Task<T?> GetByIdAsync(object id);
     
     Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> filter,
         Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null, bool disableTracking = true);
 
-    Task<IEnumerable<T>?> FindByConditionAsync(Expression<Func<T, bool>> filter = null,
-        Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-        Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null, bool disableTracking = true);
+    Task<IEnumerable<T>?> FindByConditionAsync(Expression<Func<T, bool>> filter,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+        Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null, bool disableTracking = true);
     
-    IEnumerable<T>? FindByCondition(Expression<Func<T, bool>> filter = null,
-        Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null,
-        Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null, bool disableTracking = true);
+    IEnumerable<T> FindByCondition(Expression<Func<T, bool>> filter,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+        Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null, bool disableTracking = true);
 
     Task<int> CountAsync();
     Task<int> CountAsync(Expression<Func<T, bool>> filter);

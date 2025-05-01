@@ -2,18 +2,20 @@ using System.Linq.Expressions;
 using ILChat.Repositories.IRepositories;
 using ILChat.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 
 namespace ILChat.Repositories.RepositoryImpls;
 
-public class EFRepository<T> : IRepository<T> where T : class
+public class EfRepository<T> : IDisposable, IRepository<T> where T : class
 {
     private readonly DbContext _context;
     private readonly DbSet<T> _dbSet;
     private readonly ILogger _logger;
 
-    public EFRepository(DbContext context)
+    public EfRepository(DbContext context)
     {
+        _logger = context.GetService<ILogger<EfRepository<T>>>();
         _context = context;
         _dbSet = _context.Set<T>();
     }
@@ -33,24 +35,37 @@ public class EFRepository<T> : IRepository<T> where T : class
         return _dbSet;
     }
 
-    public IQueryable<T> GetAll(Expression<Func<T, bool>> filter = null, params Expression<Func<T, object>>[] includes)
+    public Pagination<T> GetAll(GetAllQueryOptions<T> options)
     {
         IQueryable<T> query = _dbSet;
-
-        if (includes != null)
+        if (options.DisableTracking)
         {
-            foreach (var include in includes)
-            {
-                query = query.Include(include);
-            }
+            query = query.AsNoTracking();
+        }
+        
+        if(options.Include != null)
+            query = options.Include(query);
+        
+        if (options.OrderBy != null)
+        {
+            query = options.OrderBy(query);
         }
 
-        if (filter != null)
-        {
-            query = query.Where(filter);
-        }
+        var itemCount = query.Count(options.Filter);
+        var item = query
+            .Where(options.Filter)
+            .Skip((options.PageIndex - 1) * options.PageSize)
+            .Take(options.PageSize)
+            .AsNoTracking()
+            .ToList();
 
-        return query.AsNoTracking();
+        return new Pagination<T>
+        {
+            PageIndex = options.PageIndex,
+            PageSize = options.PageSize,
+            TotalItems = itemCount,
+            Items = item
+        };
     }
 
     public async Task<Pagination<T>> GetAllAsync(GetAllQueryOptions<T> options)
@@ -96,9 +111,9 @@ public class EFRepository<T> : IRepository<T> where T : class
         return await _dbSet.AnyAsync();
     }
 
-    public async Task<T> GetByIdAsync(object id)
+    public async Task<T?> GetByIdAsync(object id)
     {
-        return (await _dbSet.FindAsync(id))!;
+        return (await _dbSet.FindAsync(id)) ?? null;
     }
 
     public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> filter, Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null, bool disableTracking = true)
@@ -121,7 +136,7 @@ public class EFRepository<T> : IRepository<T> where T : class
     }
     
     public async Task<IEnumerable<T>?> FindByConditionAsync(Expression<Func<T, bool>> filter,
-        Func<IQueryable<T>, IOrderedQueryable<T>> orderBy, Func<IQueryable<T>, IIncludableQueryable<T, object>> include,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null, Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
         bool disableTracking = true)
     {
         try
@@ -137,11 +152,8 @@ public class EFRepository<T> : IRepository<T> where T : class
             {
                 query = include(query);
             }
-
-            if (filter != null)
-            {
-                query = query.Where(filter); // Áp dụng điều kiện lọc nếu có
-            }
+            
+            query = query.Where(filter);
 
             if (orderBy != null)
             {
@@ -157,7 +169,7 @@ public class EFRepository<T> : IRepository<T> where T : class
         }
     }
 
-    public IEnumerable<T>? FindByCondition(Expression<Func<T, bool>> filter = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, Func<IQueryable<T>, IIncludableQueryable<T, object>> include = null,
+    public IEnumerable<T> FindByCondition(Expression<Func<T, bool>> filter, Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null, Func<IQueryable<T>, IIncludableQueryable<T, object>>? include = null,
         bool disableTracking = true)
     {
         try
@@ -173,11 +185,8 @@ public class EFRepository<T> : IRepository<T> where T : class
             {
                 query = include(query);
             }
-
-            if (filter != null)
-            {
-                query = query.Where(filter); // Áp dụng điều kiện lọc nếu có
-            }
+            
+            query = query.Where(filter);
 
             if (orderBy != null)
             {
@@ -188,28 +197,9 @@ public class EFRepository<T> : IRepository<T> where T : class
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(ex.Message + " "+ ex.StackTrace);
+            _logger.LogError(ex.Message + " "+ ex.StackTrace);
             throw;
         }
-    }
-
-
-    public async Task<IEnumerable<T>?> FirstOrDefaultCondition(Expression<Func<T, bool>> filter,
-        Func<IQueryable<T>, IIncludableQueryable<T, object>> include, bool disableTracking = true)
-    {
-        IQueryable<T> query = _dbSet;
-
-        if (disableTracking)
-        {
-            query = query.AsNoTracking();
-        }
-
-        if (include != null)
-        {
-            query = include(query);
-        }
-
-        return await query.Where(filter).ToListAsync();
     }
 
     public async Task<int> CountAsync()

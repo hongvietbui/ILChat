@@ -1,19 +1,21 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using ILChat.Entities;
+using ILChat.Repositories.IRepositories;
 
-namespace ILChat.Services;
+namespace ILChat.ServiceImpls;
 
-public class UserServiceImpl : ILChat.UserService.UserServiceBase
+public class UserServiceImpl(IUnitOfWork unitOfWork) : UserService.UserServiceBase
 {
-    public async override Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
+    public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
     {
-        var user = new GetUserOutput
+        var user = await unitOfWork.Repository<User>().FirstOrDefaultAsync(filter: u => (u.FirstName +" "+ u.LastName).Contains(request.Query) || u.Username.Contains(request.Query),
+            include: null, disableTracking: true);
+        
+        if (user == null)
         {
-            Id = Guid.NewGuid().ToString(),
-            Username = "usernameTest",
-            Name = "Name"
-        };
+            throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+        }
 
         return new GetUserResponse
         {
@@ -23,7 +25,13 @@ public class UserServiceImpl : ILChat.UserService.UserServiceBase
                 Message = "Get user successfully",
                 Status = 200
             },
-            Data = user
+            Data = new GetUserOutput
+            {
+                Id = user.Id.ToString(),
+                Username = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName
+            }
         };
     }
 
@@ -33,15 +41,21 @@ public class UserServiceImpl : ILChat.UserService.UserServiceBase
         {
             Id = Guid.NewGuid(),
             Username = request.Data.Username,
-            Name = request.Data.Name,
+            FirstName = request.Data.FirstName,
+            LastName = request.Data.LastName,
+            Email = request.Data.Email,
             Password = request.Data.Password
         };
+
+        await unitOfWork.Repository<User>().AddAsync(user);
+        await unitOfWork.SaveChangesAsync();
         
         var userCreated = new GetUserOutput
         {
             Id = user.Id.ToString(),
             Username = request.Data.Username,
-            Name = request.Data.Name
+            FirstName = request.Data.FirstName,
+            LastName = request.Data.LastName
         };
 
         return new CreateUserResponse

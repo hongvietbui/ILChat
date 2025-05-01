@@ -23,7 +23,9 @@ message GetUserResponse {
 message GetUserOutput {
   string id = 1;
   string username = 2;
-  string name = 3;
+  string firstName = 3;
+  string lastName = 4;
+  string email = 5;
 }
 
 message GetUserRequest {
@@ -33,8 +35,10 @@ message GetUserRequest {
 //Create user
 message CreateUserInput {
   string username = 1;
-  string name = 2;
-  string password = 3;
+  string firstName = 2;
+  string lastName = 3;
+  string password = 4;
+  string email = 5;
 }
 
 message CreateUserRequest {
@@ -55,7 +59,9 @@ message DeleteUserRequest {
 message UpdateUserInput {
   string id = 1;
   string username = 2;
-  string name = 3;
+  string firstName = 3;
+  string lastName = 4;
+  string email = 5;
 }
 
 message UpdateUserRequest {

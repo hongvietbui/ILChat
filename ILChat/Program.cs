@@ -1,10 +1,18 @@
 using ILChat.Entities;
+using ILChat.Repositories.IRepositories;
+using ILChat.Repositories.RepositoryImpls;
 using ILChat.Utilities;
-using ILChat.Services;
+using ILChat.ServiceImpls;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
+using NetCore.AutoRegisterDi;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.RegisterAssemblyPublicNonGenericClasses()
+    .Where(c => c.Name.EndsWith("RepositoryImpl"))
+    .AsPublicImplementedInterfaces(ServiceLifetime.Scoped);
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
 builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -12,7 +20,7 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
     var settings = builder.Configuration.GetSection("ConnectionStrings:MongoDb").Value;
     return new MongoClient(settings);
 });
-
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<ChatDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"), sqlOptions =>
@@ -33,4 +41,4 @@ app.MapGet("/",
     () =>
         "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
 
-app.Run();
+await app.RunAsync();
