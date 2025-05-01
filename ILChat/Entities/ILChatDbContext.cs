@@ -3,14 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ILChat.Entities;
 
-public class ChatDbContext : DbContext
+public class ChatDbContext(DbContextOptions<ChatDbContext> options, IHttpContextAccessor httpContextAccessor)
+    : DbContext(options)
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    public ChatDbContext(DbContextOptions<ChatDbContext> options, IHttpContextAccessor httpContextAccessor) : base(options)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
-
     public override int SaveChanges()
     {
         ApplyAuditInfo();
@@ -25,20 +20,31 @@ public class ChatDbContext : DbContext
 
     private void ApplyAuditInfo()
     {
-        var entries = ChangeTracker.Entries<IAuditable>();
-        var username = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
+        var entries = ChangeTracker.Entries();
+        var username = httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "System";
 
         foreach (var entry in entries)
         {
-            if (entry.State == EntityState.Added)
+            if (entry.Entity is IAuditable auditable)
             {
-                entry.Entity.CreatedAt = DateTime.UtcNow;
-                entry.Entity.CreatedBy = username;
+                if (entry.State == EntityState.Added)
+                {
+                    auditable.CreatedAt = DateTime.UtcNow;
+                    auditable.CreatedBy = username;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    auditable.UpdatedAt = DateTime.UtcNow;
+                    auditable.UpdatedBy = username;
+                }
             }
-            else if (entry.State == EntityState.Modified)
+
+            if (entry.State == EntityState.Deleted && entry.Entity is IDeletable deletable)
             {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
-                entry.Entity.UpdatedBy = username;
+                entry.State = EntityState.Modified;
+                deletable.IsDeleted = true;
+                deletable.DeletedAt = DateTime.UtcNow;
+                deletable.DeletedBy = username;
             }
         }
     }

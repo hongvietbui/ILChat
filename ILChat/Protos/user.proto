@@ -53,7 +53,7 @@ message CreateUserResponse {
 //Delete user
 message DeleteUserRequest {
   base.BaseRequest meta = 1;
-  string id = 2;
+  string data = 2;
 }
 //Update user
 message UpdateUserInput {

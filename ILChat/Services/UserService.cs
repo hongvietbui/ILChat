@@ -10,8 +10,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : ILChat.UserSe
 {
     public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
     {
-        var user = await unitOfWork.Repository<User>().FirstOrDefaultAsync(filter: u => (u.FirstName +" "+ u.LastName).Contains(request.Query) || u.Username.Contains(request.Query),
-            include: null, disableTracking: true);
+        var user = await unitOfWork.Repository<User>().FirstOrDefaultAsync(filter: u => (u.FirstName +" "+ u.LastName).Contains(request.Query) || u.Username.Contains(request.Query));
         
         if (user == null)
         {
@@ -23,8 +22,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : ILChat.UserSe
             Meta = new BaseResponse
             {
                 Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
-                Message = "Get user successfully",
-                Status = 200
+                Message = "Get user successfully"
             },
             Data = mapper.Map<GetUserOutput>(user)
         };
@@ -45,35 +43,43 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : ILChat.UserSe
         await unitOfWork.Repository<User>().AddAsync(user);
         await unitOfWork.SaveChangesAsync();
         
-        var userCreated = new GetUserOutput
-        {
-            Id = user.Id.ToString(),
-            Username = request.Data.Username,
-            FirstName = request.Data.FirstName,
-            LastName = request.Data.LastName
-        };
+        var userCreated = mapper.Map<GetUserOutput>(user);
 
         return new CreateUserResponse
         {
             Meta = new BaseResponse
             {
                 Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
-                Message = "Create user successfully",
-                Status = 200
+                Message = "Create user successfully"
             },
             Data = userCreated
         };
     }
 
-    public async override Task<StringBaseResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
+    public override async Task<StringBaseResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
     {
+        var isValid = Guid.TryParse(request.Data, out var userId);
+        
+        if(!isValid)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid user id"));
+        
+        var isUserExisted = await unitOfWork.Repository<User>()
+            .AnyAsync(u => string.Equals(u.Id.ToString(), request.Data));
+        
+        if (!isUserExisted)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+        }
+
+        await unitOfWork.Repository<User>().DeleteByIdAsync(userId);
+        await unitOfWork.SaveChangesAsync();
+        
         return new StringBaseResponse
         {
             Data = "",
             Meta = new BaseResponse
             {
                 Message = "Delete user successfully",
-                Status = 200,
                 Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
             }
         };
@@ -81,13 +87,27 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : ILChat.UserSe
 
     public async override Task<StringBaseResponse> UpdateUser(UpdateUserRequest request, ServerCallContext context)
     {
+        var isUserExisted = await unitOfWork.Repository<User>()
+            .AnyAsync(u => string.Equals(u.Id.ToString(), request.Data));
+        
+        if (!isUserExisted)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
+        }
+
+        var user = await unitOfWork.Repository<User>().GetByIdAsync(request.Data);
+        user.FirstName = request.Data.FirstName;
+        user.LastName = request.Data.LastName;
+        user.Username = request.Data.Username;
+        user.Email = request.Data.Email;
+        unitOfWork.Repository<User>().Update(user);
+        
         return new StringBaseResponse
         {
             Data = "",
             Meta = new BaseResponse
             {
                 Message = "Update user successfully",
-                Status = 200,
                 Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
             }
         };
