@@ -1,11 +1,12 @@
+using AutoMapper;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using ILChat.Entities;
 using ILChat.Repositories.IRepositories;
 
-namespace ILChat.ServiceImpls;
+namespace ILChat.Services;
 
-public class UserServiceImpl(IUnitOfWork unitOfWork) : UserService.UserServiceBase
+public class UserService(IUnitOfWork unitOfWork, IMapper mapper) : ILChat.UserService.UserServiceBase
 {
     public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
     {
@@ -25,13 +26,7 @@ public class UserServiceImpl(IUnitOfWork unitOfWork) : UserService.UserServiceBa
                 Message = "Get user successfully",
                 Status = 200
             },
-            Data = new GetUserOutput
-            {
-                Id = user.Id.ToString(),
-                Username = user.Username,
-                FirstName = user.FirstName,
-                LastName = user.LastName
-            }
+            Data = mapper.Map<GetUserOutput>(user)
         };
     }
 
