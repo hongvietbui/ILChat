@@ -12,10 +12,7 @@ using NetCore.AutoRegisterDi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.RegisterAssemblyPublicNonGenericClasses()
-    .Where(c => c.Name.EndsWith("RepositoryImpl"))
-    .AsPublicImplementedInterfaces(ServiceLifetime.Scoped);
+builder.Services.AddAutoDiServices();
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
 builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -39,6 +36,7 @@ builder.Services.AddAutoMapper(typeof(MapProfile).Assembly);
 builder.Services.AddGrpc();
 
 builder.Services.AddCustomAuthentication(builder.Configuration);
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 

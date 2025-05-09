@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package user;
+option csharp_namespace = "ILChat";
+import "base.proto";
+
+service UserService {
+  //Get User by Id
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  //Create new user
+  rpc CreateUser (CreateUserRequest) returns (base.StringBaseResponse);
+  //Delete User by Id
+  rpc DeleteUser (DeleteUserRequest) returns (base.StringBaseResponse);
+  //Update User by Id
+  rpc UpdateUser (UpdateUserRequest) returns (base.StringBaseResponse);
+}
+//Get user
+message GetUserResponse {
+  base.BaseResponse meta = 1;
+  GetUserOutput data = 2;
+}
+
+message GetUserOutput {
+  string id = 1;
+  string username = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string email = 5;
+}
+
+message GetUserRequest {
+  base.BaseRequest meta = 1;
+  string query = 2;
+}
+//Create user
+message CreateUserInput {
+  string username = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string password = 4;
+  string email = 5;
+}
+
+message CreateUserRequest {
+  base.BaseRequest meta = 1;
+  CreateUserInput data = 2;
+}
+
+//Delete user
+message DeleteUserRequest {
+  base.BaseRequest meta = 1;
+  string data = 2;
+}
+//Update user
+message UpdateUserInput {
+  string id = 1;
+  string username = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string email = 5;
+}
+
+message UpdateUserRequest {
+  base.BaseRequest meta = 1;
+  UpdateUserInput data = 2;
+}

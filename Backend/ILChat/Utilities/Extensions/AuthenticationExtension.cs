@@ -13,17 +13,33 @@ public static class AuthenticationExtension
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddJwtBearer(options =>
         {
-            options.Authority = configuration["Keycloak:Authority"];
+            var realm = configuration["Keycloak:Realm"];
+            var baseUrl = configuration["Keycloak:BaseUrl"];
+            var authority = baseUrl+ "/realms/" + realm;
+            
+            options.Authority = authority;
             options.Audience = configuration["Keycloak:ClientId"];
             options.RequireHttpsMetadata = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidIssuer = configuration["Keycloak:Authority"],
-                ValidateAudience = true,
-                ValidAudience = configuration["Keycloak:ClientId"],
+                ValidateAudience = false,
+                
                 ValidateLifetime = true,
-                ValidateIssuerSigningKey = true
+                ValidateIssuerSigningKey = true,
+                
+                NameClaimType = "preferred_username",
+                // RoleClaimType = "realm_access.roles"
+            };
+            
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Console.WriteLine($"Token failed: {context.Exception}");
+                    return Task.CompletedTask;
+                }
             };
         });
 
