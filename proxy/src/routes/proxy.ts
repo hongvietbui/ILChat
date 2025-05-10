@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { validateDynamic } from '../middleware/validation';
 import { loadGrpcClient } from '../grpc/client';
+import grpc from '@grpc/grpc-js';
 
 const router = express.Router();
 
@@ -23,7 +24,10 @@ router.post('/_proxy/:service/:method',validateDynamic, async (req: Request, res
     return;
   }
 
-  rpcMethod.call(client, data, (err: any, result: any) => {
+  let metadata = new grpc.Metadata();
+  metadata.set('x-timestamp', new Date().toISOString());
+
+  rpcMethod.call(client, data, metadata, (err: any, result: any) => {
     if (err) {
       console.error('gRPC error:', err);
       res.status(500).json({ error: err.message });
