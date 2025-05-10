@@ -74,7 +74,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
         return new StringBaseResponse
         {
-            Meta =
+            Meta = new BaseResponse
             {
                 Message = "Create user successfully",
                 Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())

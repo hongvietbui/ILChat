@@ -56,3 +56,4 @@ export async function requestKeycloakToken(email: string, password: string, reme
     };
   }
 }
+

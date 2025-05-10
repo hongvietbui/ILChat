@@ -1,12 +1,12 @@
 import express from 'express';
-import userRoutes from './routes/user';
 import dotenv from 'dotenv';
+import router from './routes/proxy';
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-app.use('/user', userRoutes);
+app.use(router);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Proxy running at http://localhost:${PORT}`));

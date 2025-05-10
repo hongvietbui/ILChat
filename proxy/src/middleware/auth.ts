@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtHeader } from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
+import { KEYCLOAK_URL } from "../utils/config";
 
 const client = jwksClient({
   jwksUri:
-    "http://localhost:8080/realms/YOUR_REALM/protocol/openid-connect/certs",
+    `${KEYCLOAK_URL}/realms/YOUR_REALM/protocol/openid-connect/certs`
 });
 
 function getKey(header: JwtHeader, callback: jwt.SigningKeyCallback) {
@@ -32,7 +33,7 @@ export const authenticate = (
     getKey,
     {
       algorithms: ["RS256"],
-      issuer: "http://localhost:8080/realms/ILChat", // quan trọng!
+      issuer: `${KEYCLOAK_URL}/realms/ILChat`,
     },
     (err, decoded) => {
       if (err) {
