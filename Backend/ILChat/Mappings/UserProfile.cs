@@ -6,8 +6,8 @@ public class UserProfile : MapProfile
 {
     public UserProfile()
     {
-        CreateMap<User, CreateUserInput>().ReverseMap();
-        CreateMap<User, GetUserOutput>().ReverseMap();
-        CreateMap<User, UpdateUserInput>().ReverseMap();
+        CreateMap<User, CreateUserRequest>().ReverseMap();
+        CreateMap<User, GetUserResponse>().ReverseMap();
+        CreateMap<User, UpdateUserRequest>().ReverseMap();
     }
 }

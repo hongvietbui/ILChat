@@ -2,8 +2,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using AutoMapper;
-using Azure.Identity;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using ILChat.Entities;
 using ILChat.Repositories.IRepositories;
@@ -23,15 +21,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
         }
 
-        return new GetUserResponse
-        {
-            Meta = new BaseResponse
-            {
-                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
-                Message = "Get user successfully"
-            },
-            Data = mapper.Map<GetUserOutput>(user)
-        };
+        return mapper.Map<GetUserResponse>(user);
     }
 
     public override async Task<StringBaseResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
@@ -45,16 +35,16 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
         var userPayload = new
         {
-            username = request.Data.Username,
-            email = request.Data.Email,
+            username = request.Username,
+            email = request.Email,
             enabled = true,
-            firstName = request.Data.FirstName,
+            firstName = request.FirstName,
             credentials = new[]
             {
                 new
                 {
                     type = "password",
-                    value = request.Data.Password,
+                    value = request.Password,
                     temporary = false
                 }
             }
@@ -74,12 +64,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
         return new StringBaseResponse
         {
-            Meta = new BaseResponse
-            {
-                Message = "Create user successfully",
-                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
-            },
-            Data = ""
+            Data = "Create user successfully",
         };
     }
 
@@ -120,13 +105,13 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
     public override async Task<StringBaseResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
     {
-        var isValid = Guid.TryParse(request.Data, out var userId);
+        var isValid = Guid.TryParse(request.Id, out var userId);
 
         if (!isValid)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid user id"));
 
         var isUserExisted = await unitOfWork.Repository<User>()
-            .AnyAsync(u => string.Equals(u.Id.ToString(), request.Data));
+            .AnyAsync(u => string.Equals(u.Id.ToString(), request));
 
         if (!isUserExisted)
         {
@@ -138,40 +123,30 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
         return new StringBaseResponse
         {
-            Data = "",
-            Meta = new BaseResponse
-            {
-                Message = "Delete user successfully",
-                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
-            }
+            Data = "Delete user successfully"
         };
     }
 
     public override async Task<StringBaseResponse> UpdateUser(UpdateUserRequest request, ServerCallContext context)
     {
         var isUserExisted = await unitOfWork.Repository<User>()
-            .AnyAsync(u => string.Equals(u.Id.ToString(), request.Data));
+            .AnyAsync(u => string.Equals(u.Id.ToString(), request));
 
         if (!isUserExisted)
         {
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
         }
 
-        var user = await unitOfWork.Repository<User>().GetByIdAsync(request.Data);
-        user.FirstName = request.Data.FirstName;
-        user.LastName = request.Data.LastName;
-        user.Username = request.Data.Username;
-        user.Email = request.Data.Email;
+        var user = await unitOfWork.Repository<User>().GetByIdAsync(request);
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.Username = request.Username;
+        user.Email = request.Email;
         unitOfWork.Repository<User>().Update(user);
 
         return new StringBaseResponse
         {
-            Data = "",
-            Meta = new BaseResponse
-            {
-                Message = "Update user successfully",
-                Timestamp = Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
-            }
+            Data = "Update user successfully"
         };
     }
 }
