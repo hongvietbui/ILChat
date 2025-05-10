@@ -8,7 +8,6 @@ public abstract class MongoBaseEntity : IAuditable, IDeletable
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     public string Id { get; set; } = null!;
-
     public bool? IsDeleted { get; set; }
     public DateTime? DeletedAt { get; set; }
     public string? DeletedBy { get; set; }
