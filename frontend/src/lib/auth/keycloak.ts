@@ -8,7 +8,7 @@ function getTokenEndpointUrl(): string {
     return `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;
 }
 
-export async function requestKeycloakToken(email: string, password: string): Promise<LoginResult> {
+export async function requestKeycloakToken(email: string, password: string, rememberMe?: boolean): Promise<LoginResult> {
   const clientId = process.env.KEYCLOAK_CLIENT_ID!;
   const clientSecret = process.env.KEYCLOAK_CLIENT_SECRET!;
 
@@ -18,6 +18,12 @@ export async function requestKeycloakToken(email: string, password: string): Pro
   params.append("client_secret", clientSecret);
   params.append("username", email);
   params.append("password", password);
+
+  if (rememberMe) {
+    params.append("scope", "openid offline_access");
+  } else {
+    params.append("scope", "openid");
+  }
 
   try {
     const response = await fetch(getTokenEndpointUrl(), {
@@ -50,3 +56,4 @@ export async function requestKeycloakToken(email: string, password: string): Pro
     };
   }
 }
+
