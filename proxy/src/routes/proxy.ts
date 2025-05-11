@@ -1,7 +1,7 @@
+import * as grpc from '@grpc/grpc-js';
+import { loadGrpcClient } from '../grpc/client';
 import express, { Request, Response } from 'express';
 import { validateDynamic } from '../middleware/validation';
-import { loadGrpcClient } from '../grpc/client';
-import grpc from '@grpc/grpc-js';
 
 const router = express.Router();
 
