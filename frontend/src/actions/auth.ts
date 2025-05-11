@@ -16,22 +16,13 @@ export async function loginAction(data: unknown): Promise<LoginResult> {
 }
 
 export async function registerUser(input: RegisterUserInput): Promise<RegisterUserResponse> {
-  const proxyUrl = process.env.NEXT_PUBLIC_PROXY_URL || 'http://localhost:3001/_proxy/UserService/CreateUser';
-
-  const payload = {
-    meta: {
-      timestamp: {
-        seconds: `${Math.floor(Date.now() / 1000)}`
-      }
-    },
-    data: input
-  };
+  const proxyUrl = `${process.env.NEXT_PUBLIC_PROXY_URL}/_proxy/UserService/CreateUser`;
 
   try {
     const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(input)
     });
 
     if (!res.ok) {

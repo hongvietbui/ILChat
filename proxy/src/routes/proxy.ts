@@ -1,6 +1,8 @@
+import * as grpc from '@grpc/grpc-js';
+import { loadGrpcClient } from '../grpc/client';
 import express, { Request, Response } from 'express';
 import { validateDynamic } from '../middleware/validation';
-import { loadGrpcClient } from '../grpc/client';
+import { grpcToHttpStatus } from '../utils/grpc-to-http-status';
 
 const router = express.Router();
 
@@ -23,12 +25,20 @@ router.post('/_proxy/:service/:method',validateDynamic, async (req: Request, res
     return;
   }
 
-  rpcMethod.call(client, data, (err: any, result: any) => {
+  let metadata = new grpc.Metadata();
+  metadata.set('x-timestamp', new Date().toISOString());
+
+  rpcMethod.call(client, data, metadata, (err: any, result: any) => {
     if (err) {
-      console.error('gRPC error:', err);
-      res.status(500).json({ error: err.message });
+      const httpStatus = grpcToHttpStatus(err.code);
+      res.status(httpStatus).json({
+        error: err.message,
+        grpcCode: err.code,
+        grpcDetails: err.details || null,
+      });
       return;
     }
+
     res.json(result);
   });
 });
