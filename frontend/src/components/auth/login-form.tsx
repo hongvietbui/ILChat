@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { LoginFormValues, loginSchema } from "@/lib/zod-schemas/login";
 import { loginAction } from "@/actions/auth";
+import { setToken } from "@/lib/utils";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -46,10 +47,9 @@ export default function LoginForm() {
       const msg = result.error?.password?.[0] ?? "Login failed";
       setServerError(msg);
     } else {
-      const { access_token, id_token, refresh_token } = result.token;
-      console.log("Access Token:", access_token);
-      console.log("ID Token:", id_token);
-      console.log("Refresh Token:", refresh_token);
+      const { access_token, _, refresh_token } = result.token;
+      setToken("accessToken", access_token);
+      setToken("refreshToken", refresh_token);
 
       // Redirect to dashboard or home page
       // router.push("/dashboard");

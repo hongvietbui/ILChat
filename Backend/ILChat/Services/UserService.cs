@@ -88,8 +88,6 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
             $"{baseUrl}/realms/{realm}/protocol/openid-connect/token",
             new FormUrlEncodedContent(parameters));
         
-        // if (!tokenResponse.IsSuccessStatusCode) return null;
-        
         if (!tokenResponse.IsSuccessStatusCode)
         {
             var errorContent = await tokenResponse.Content.ReadAsStringAsync();

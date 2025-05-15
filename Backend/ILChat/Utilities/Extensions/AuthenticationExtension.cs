@@ -18,6 +18,11 @@ public static class AuthenticationExtension
             var authority = baseUrl+ "/realms/" + realm;
             var clientId = configuration["Keycloak:ClientId"];
             
+            if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(baseUrl) || string.IsNullOrEmpty(clientId))
+            {
+                throw new ArgumentException("Keycloak configuration is missing.");
+            }
+            
             options.Authority = authority;
             options.Audience = clientId;
             options.RequireHttpsMetadata = false;
@@ -49,8 +54,8 @@ public static class AuthenticationExtension
 
     private static Task CheckAzpClaim(TokenValidatedContext context, string expectedAzp)
     {
-        var azp = context.Principal.FindFirst("azp")?.Value;
-        if (azp != expectedAzp)
+        var azp = context.Principal?.FindFirst("azp")?.Value;
+        if (azp == null || azp != expectedAzp)
         {
             context.Fail("Invalid azp claim. Expected: " + expectedAzp);
         }
