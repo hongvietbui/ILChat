@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { refreshAccessToken } from "./auth/keycloak";
-import { getToken, isTokenExpired, setToken } from "./tokenUtils";
+import { getToken, isTokenExpired, setToken} from "./tokenUtils";
 
 interface FetchWithTokenOptions {
   headers?: object;
@@ -22,8 +22,9 @@ export async function fetchWithToken(
     try {
       const tokenData = await refreshAccessToken(refreshToken);
       accessToken = tokenData.access_token;
+
       await setToken("accessToken", accessToken);
-      if (tokenData.refresh_token) {
+      if (tokenData.refresh_token && tokenData.refresh_token !== refreshToken) {
         await setToken("refreshToken", tokenData.refresh_token);
       }
     } catch (error) {

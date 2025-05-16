@@ -8,7 +8,6 @@ import {
   RegisterUserInput,
   RegisterUserResponse,
 } from "@/types/auth";
-import { setToken } from "@/lib/tokenUtils";
 
 export async function loginAction(data: unknown): Promise<LoginResult> {
   const validated = validateLoginInput(data);
@@ -20,14 +19,6 @@ export async function loginAction(data: unknown): Promise<LoginResult> {
     rememberMe?: boolean;
   };
   const result = await requestKeycloakToken(email, password, rememberMe);
-
-  if (result.success && result.token) {
-    // Lưu token vào cookie
-    await setToken("accessToken", result.token.access_token);
-    if (result.token.refresh_token) {
-      await setToken("refreshToken", result.token.refresh_token);
-    }
-  }
 
   return result;
 }
