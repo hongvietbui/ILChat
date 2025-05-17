@@ -16,25 +16,29 @@ public static class AuthenticationExtension
             var realm = configuration["Keycloak:Realm"];
             var baseUrl = configuration["Keycloak:BaseUrl"];
             var authority = baseUrl+ "/realms/" + realm;
+            var clientId = configuration["Keycloak:ClientId"];
+            
+            if (string.IsNullOrEmpty(realm) || string.IsNullOrEmpty(baseUrl) || string.IsNullOrEmpty(clientId))
+            {
+                throw new ArgumentException("Keycloak configuration is missing.");
+            }
             
             options.Authority = authority;
-            options.Audience = configuration["Keycloak:ClientId"];
+            options.Audience = clientId;
             options.RequireHttpsMetadata = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = configuration["Keycloak:Authority"],
+                ValidIssuer = authority,
                 ValidateAudience = false,
-                
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                
                 NameClaimType = "preferred_username",
-                // RoleClaimType = "realm_access.roles"
             };
             
             options.Events = new JwtBearerEvents
             {
+                OnTokenValidated = context => CheckAzpClaim(context, clientId),
                 OnAuthenticationFailed = context =>
                 {
                     Console.WriteLine($"Token failed: {context.Exception}");
@@ -43,6 +47,19 @@ public static class AuthenticationExtension
             };
         });
 
+        services.AddAuthorization();
+
         return services;
+    }
+
+    private static Task CheckAzpClaim(TokenValidatedContext context, string expectedAzp)
+    {
+        var azp = context.Principal?.FindFirst("azp")?.Value;
+        if (azp == null || azp != expectedAzp)
+        {
+            context.Fail("Invalid azp claim. Expected: " + expectedAzp);
+        }
+
+        return Task.CompletedTask;
     }
 }

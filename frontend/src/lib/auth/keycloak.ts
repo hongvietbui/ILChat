@@ -1,4 +1,10 @@
+import axios from "axios";
 import { LoginResult } from "@/types/auth";
+
+const KEYCLOAK_BASE_URL = process.env.NEXT_PUBLIC_KEYCLOAK_BASE_URL;
+const KEYCLOAK_REALM = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
+const KEYCLOAK_CLIENT_ID = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
+const KEYCLOAK_CLIENT_SECRET = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_SECRET;
 
 const GRANT_TYPE = "password";
 
@@ -37,7 +43,7 @@ export async function requestKeycloakToken(email: string, password: string, reme
       return {
         success: false,
         error: {
-          password: [error.error_description || "Sai email hoặc mật khẩu"],
+          password: [error.error_description ?? "Wrong username or password"],
         },
       };
     }
@@ -48,6 +54,7 @@ export async function requestKeycloakToken(email: string, password: string, reme
       token,
     };
   } catch (err) {
+    console.error("Error requesting Keycloak token:", err);
     return {
       success: false,
       error: {
@@ -57,3 +64,28 @@ export async function requestKeycloakToken(email: string, password: string, reme
   }
 }
 
+export async function refreshAccessToken(refreshToken: string) {
+  const tokenRequestUrl = `${KEYCLOAK_BASE_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
+
+  try {
+    const response = await axios.post(
+      tokenRequestUrl,
+      new URLSearchParams({
+        client_id: KEYCLOAK_CLIENT_ID ?? "",
+        grant_type: "refresh_token",
+        client_secret: KEYCLOAK_CLIENT_SECRET ?? "",
+        refresh_token: refreshToken,
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error refreshing access token:", error);
+    throw new Error("Failed to refresh access token");
+  }
+}

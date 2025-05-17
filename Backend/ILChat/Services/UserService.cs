@@ -5,12 +5,14 @@ using AutoMapper;
 using Grpc.Core;
 using ILChat.Entities;
 using ILChat.Repositories.IRepositories;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ILChat.Services;
 
 public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration config, HttpClient httpClient)
     : ILChat.UserService.UserServiceBase
 {
+    [Authorize]
     public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
     {
         var user = await unitOfWork.Repository<User>().FirstOrDefaultAsync(filter: u =>
@@ -59,7 +61,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            throw new RpcException(new Status(StatusCode.Internal, $"Keycloak create user failed: {error}"));
+            throw new RpcException(new Status(StatusCode.Internal, error));
         }
 
         return new StringBaseResponse
@@ -85,8 +87,6 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
         var tokenResponse = await httpClient.PostAsync(
             $"{baseUrl}/realms/{realm}/protocol/openid-connect/token",
             new FormUrlEncodedContent(parameters));
-        
-        // if (!tokenResponse.IsSuccessStatusCode) return null;
         
         if (!tokenResponse.IsSuccessStatusCode)
         {
