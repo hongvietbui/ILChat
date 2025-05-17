@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { LoginFormValues, loginSchema } from "@/lib/zod-schemas/login";
-import { loginAction } from "@/actions/auth";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -40,23 +39,23 @@ export default function LoginForm() {
     setIsLoading(true);
     setServerError(null);
 
-    const result = await loginAction({...data, rememberMe});
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email, password: data.password, rememberMe }),
+    });
 
-    if (!result.success) {
-      const msg = result.error?.password?.[0] ?? "Login failed";
-      setServerError(msg);
-    } else {
-      const { access_token, id_token, refresh_token } = result.token;
-      console.log("Access Token:", access_token);
-      console.log("ID Token:", id_token);
-      console.log("Refresh Token:", refresh_token);
+    const result = await res.json();
 
-      // Redirect to dashboard or home page
-      // router.push("/dashboard");
-      alert("Login successful");
+    if (!res.ok || !result.success) {
+      setServerError(result.error?.password?.[0] ?? "Login failed");
+      setIsLoading(false);
+      return;
     }
 
     setIsLoading(false);
+    //Navigate to the dashboard or home page
+    window.location.href = "/";
   };
 
   return (
