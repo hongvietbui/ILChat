@@ -3,18 +3,17 @@ syntax = "proto3";
 package msg;
 option csharp_namespace = "ILChat";
 
-import "user.proto";
+import "google/protobuf/timestamp.proto";
 
 message MessageDto {
   string id = 1;
   string content = 2;
-  string sender_id = 3;
-  user.UserInfo sender = 4;
-  string timestamp = 5;
+  string senderId = 3;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 message FetchMessagesRequest {
-  string conversation_id = 1;
+  string conversationId = 1;
 }
 
 message FetchMessagesResponse {
@@ -22,7 +21,7 @@ message FetchMessagesResponse {
 }
 
 message SendMessageRequest {
-  string conversation_id = 1;
+  string conversationId = 1;
   string content = 2;
 }
 

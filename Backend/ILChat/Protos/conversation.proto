@@ -3,7 +3,6 @@ syntax = "proto3";
 package conversation;
 option csharp_namespace = "ILChat";
 
-import "user.proto";
 import "msg.proto";
 
 message ConversationDto {
@@ -14,18 +13,11 @@ message ConversationDto {
   repeated msg.MessageDto messages = 5;
 }
 
-message FetchConversationsRequest {}
+message FetchConversationsRequest {
+}
 
 message FetchConversationsResponse {
   repeated ConversationDto conversations = 1;
-}
-
-message SearchUsersRequest {
-  string query = 1;
-}
-
-message SearchUsersResponse {
-  repeated user.UserInfo users = 1;
 }
 
 message CreateConversationRequest {
@@ -40,6 +32,5 @@ message CreateConversationResponse {
 
 service ConversationService {
   rpc FetchConversations(FetchConversationsRequest) returns (FetchConversationsResponse);
-  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
   rpc CreateConversation(CreateConversationRequest) returns (CreateConversationResponse);
 }

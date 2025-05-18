@@ -7,8 +7,8 @@ using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddAutoDiServices();
 builder.Services.AddDatabaseConfiguration(builder.Configuration);
+builder.Services.AddAutoDiServices();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAutoMapper(typeof(MapProfile).Assembly);

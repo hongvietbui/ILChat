@@ -1,31 +1,53 @@
+using AutoMapper;
 using Grpc.Core;
 using ILChat.Enums;
 using ILChat.Repositories.IRepositories;
 using MongoDB.Bson;
 using ILChat.Entities;
 using Microsoft.AspNetCore.Authorization;
+using MongoDB.Driver;
 
 namespace ILChat.Services;
 
-public class ConversationService(IMongoRepository<Conversation> conversationRepo, IMongoRepository<MessageDto> messageRepo) : ILChat.ConversationService.ConversationServiceBase
+[Authorize]
+public class ConversationService(
+    IMongoRepository<Conversation> conversationRepo,
+    IHttpContextAccessor httpContextAccessor,
+    IMapper mapper) : ILChat.ConversationService.ConversationServiceBase
 {
-    public override Task<FetchConversationsResponse> FetchConversations(FetchConversationsRequest request, ServerCallContext context)
+    public override async Task<FetchConversationsResponse> FetchConversations(FetchConversationsRequest request,
+        ServerCallContext context)
     {
-        return base.FetchConversations(request, context);
-    }
-
-    public override Task<SearchUsersResponse> SearchUsers(SearchUsersRequest request, ServerCallContext context)
-    {
-        return base.SearchUsers(request, context);
-    }
-
-    [Authorize]
-    public override async Task<CreateConversationResponse> CreateConversation(CreateConversationRequest request, ServerCallContext context)
-    {
-        if(request.ParticipantIds.Count < 2)
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "At least two participants are required"));
+        var user = httpContextAccessor.HttpContext?.User;
+        if(user == null)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "User is not authenticated"));
         
-        if(!Enum.TryParse<ConversationType>(request.Type, true, out var type))
+        var userId = user.FindFirst("sub")?.Value;
+        
+        var filter = Builders<Conversation>.Filter.AnyEq(c => c.ParticipantIds, userId);
+        var conversations = await conversationRepo.FindAsync(filter);
+        var mappedConversation = mapper.Map<List<ConversationDto>>(conversations);
+        
+        var response = new FetchConversationsResponse();
+
+        response.Conversations.AddRange(mappedConversation);
+        
+        return response;
+    }
+
+    public override async Task<CreateConversationResponse> CreateConversation(CreateConversationRequest request,
+        ServerCallContext context)
+    {
+        if (request.ParticipantIds.Count < 2)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "At least two participants are required"));
+
+        var user = httpContextAccessor.HttpContext?.User;
+        var userId = user?.FindFirst("sub")?.Value;
+        
+        if(!request.ParticipantIds.Contains(userId))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "User must be a participant"));
+
+        if (!Enum.TryParse<ConversationType>(request.Type, true, out var type))
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid conversation type"));
 
         var conversation = new Conversation
@@ -37,7 +59,7 @@ public class ConversationService(IMongoRepository<Conversation> conversationRepo
         };
 
         await conversationRepo.AddAsync(conversation);
-        
+
         return new CreateConversationResponse { ConversationId = conversation.Id };
     }
 }

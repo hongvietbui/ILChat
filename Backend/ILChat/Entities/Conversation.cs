@@ -1,14 +1,12 @@
+using ILChat.Entities.BaseEntities;
 using ILChat.Enums;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace ILChat.Entities;
 
-public class Conversation
+public class Conversation : MongoBaseEntity
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public required string Id { get; set; }
     [BsonElement("type")]
     public ConversationType Type { get; set; }
     [BsonElement("participantIds")]

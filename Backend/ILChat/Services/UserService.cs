@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -61,6 +62,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
             email = request.Email,
             enabled = true,
             firstName = request.FirstName,
+            lastName = request.LastName,
             credentials = new[]
             {
                 new
@@ -89,6 +91,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
         var locationHeader = response.Headers.Location.ToString();
         var userId = locationHeader.Substring(locationHeader.LastIndexOf('/') + 1);
+        
         try
         {
             var user = new User
@@ -172,6 +175,8 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
 
     public override async Task<StringBaseResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
     {
+        //TODO: Check if the user is the owner of the account or admin
+        
         var isValid = Guid.TryParse(request.Id, out var userId);
 
         if (!isValid)

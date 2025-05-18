@@ -7,8 +7,9 @@ public class MongoRepository<T> : IMongoRepository<T> where T : class
 {
     private readonly IMongoCollection<T> _collection;
 
-    public MongoRepository(IMongoDatabase database, string collectionName)
+    public MongoRepository(IMongoDatabase database)
     {
+        var collectionName = typeof(T).Name;
         _collection = database.GetCollection<T>(collectionName);
     }
     
@@ -21,6 +22,14 @@ public class MongoRepository<T> : IMongoRepository<T> where T : class
     {
         var filter = Builders<T>.Filter.Eq("Id", id);
         return await _collection.Find(filter).FirstOrDefaultAsync();
+    }
+
+    public async Task<List<T>> FindAsync(FilterDefinition<T> filter, SortDefinition<T>? sort = null)
+    {
+        var result = _collection.Find(filter);
+        if (sort != null)
+            result = result.Sort(sort);
+        return await result.ToListAsync();
     }
 
     public async Task AddAsync(T entity)

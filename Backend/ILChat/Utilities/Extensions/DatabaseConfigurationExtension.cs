@@ -14,6 +14,13 @@ public static class DatabaseConfigurationExtension
             var settings = configuration.GetSection("ConnectionStrings:MongoDb").Value;
             return new MongoClient(settings);
         });
+
+        services.AddScoped<IMongoDatabase>(sp =>
+        {
+            var databaseName = configuration.GetSection("MongoDbSettings:DatabaseName").Value;
+            var client = sp.GetRequiredService<IMongoClient>();
+            return client.GetDatabase(databaseName);
+        });
         
         services.AddDbContext<ChatDbContext>(options =>
         {
