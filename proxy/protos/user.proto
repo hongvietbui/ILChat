@@ -3,24 +3,30 @@ syntax = "proto3";
 package user;
 option csharp_namespace = "ILChat";
 import "base.proto";
+import "google/protobuf/timestamp.proto";
 
 service UserService {
-  //Get User by Id
-  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  //Search Users
+  rpc GetUsers (GetUserRequest) returns (GetUserResponse);
   //Create new user
   rpc CreateUser (CreateUserRequest) returns (base.StringBaseResponse);
   //Delete User by id
   rpc DeleteUser (DeleteUserRequest) returns (base.StringBaseResponse);
   //Update User by Id
-  rpc UpdateUser (UpdateUserRequest) returns (base.StringBaseResponse);
+  rpc UpdateUser (UserInfo) returns (base.StringBaseResponse);
 }
 //Get user
-message GetUserResponse {
+message UserInfo {
   string id = 1;
   string username = 2;
   string firstName = 3;
   string lastName = 4;
   string email = 5;
+  string avatar = 6;
+}
+
+message GetUserResponse {
+  repeated UserInfo users = 1;
 }
 
 message GetUserRequest {
@@ -33,14 +39,9 @@ message CreateUserRequest {
   string lastName = 3;
   string password = 4;
   string email = 5;
-}
-
-message UpdateUserRequest {
-  string id = 1;
-  string username = 2;
-  string firstName = 3;
-  string lastName = 4;
-  string email = 5;
+  string avatar = 6;
+  string gender = 7;
+  google.protobuf.Timestamp dob = 8;
 }
 
 message DeleteUserRequest {

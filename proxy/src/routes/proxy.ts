@@ -53,8 +53,6 @@ RESTFUL_METHODS.forEach((restfulMethod) => {
         }
       });
 
-      console.log(req.headers);
-
       rpcMethod.call(client, data, metadata, (err: any, result: any) => {
         if (err) {
           const httpStatus = grpcToHttpStatus(err.code);
