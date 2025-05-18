@@ -8,16 +8,11 @@ public class User : BaseEntity<Guid>
     [Required]
     [MaxLength(50)]
     public string Username { get; set; } = null!;
-    [Required]
-    [MaxLength(256)]
-    public string Password { get; set; } = null!;
+    [MaxLength(50)]
+    public DateTime? DateOfBirth { get; set; }
     [Required]
     [MaxLength(50)]
-    public string FirstName { get; set; } = null!;
-    [Required]
-    [MaxLength(50)]
-    public string LastName { get; set; } = null!;
-    [Required]
-    [MaxLength(50)]
-    public required string Email { get; set; }
+    public string Gender { get; set; } = null!;
+    [MaxLength(2048)]
+    public string? Avatar { get; set; } = null!;
 }

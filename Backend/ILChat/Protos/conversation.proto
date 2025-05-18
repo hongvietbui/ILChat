@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package conversation;
+option csharp_namespace = "ILChat";
+
+import "user.proto";
+import "msg.proto";
+
+message ConversationDto {
+  string id = 1;
+  repeated string participantIds = 2;
+  msg.MessageDto last_message = 3;
+  int32 unread_count = 4;
+  repeated msg.MessageDto messages = 5;
+}
+
+message FetchConversationsRequest {}
+
+message FetchConversationsResponse {
+  repeated ConversationDto conversations = 1;
+}
+
+message SearchUsersRequest {
+  string query = 1;
+}
+
+message SearchUsersResponse {
+  repeated user.UserInfo users = 1;
+}
+
+message CreateConversationRequest {
+  repeated string participant_ids = 1;
+  string type = 2;
+  optional string group_name = 3;
+}
+
+message CreateConversationResponse {
+  string conversation_id = 1;
+}
+
+service ConversationService {
+  rpc FetchConversations(FetchConversationsRequest) returns (FetchConversationsResponse);
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse);
+  rpc CreateConversation(CreateConversationRequest) returns (CreateConversationResponse);
+}

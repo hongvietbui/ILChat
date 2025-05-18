@@ -13,17 +13,37 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
     : ILChat.UserService.UserServiceBase
 {
     [Authorize]
-    public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
+    public override async Task<GetUserResponse> GetUsers(GetUserRequest request, ServerCallContext context)
     {
-        var user = await unitOfWork.Repository<User>().FirstOrDefaultAsync(filter: u =>
-            (u.FirstName + " " + u.LastName).Contains(request.Query) || u.Username.Contains(request.Query));
+        var users = await GetUsersAsync(request.Query);
 
-        if (user == null)
-        {
-            throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
-        }
+        var response = new GetUserResponse();
+        
+        response.Users.AddRange(mapper.Map<List<UserInfo>>(users));
 
-        return mapper.Map<GetUserResponse>(user);
+        return response;
+    }
+    
+    private async Task<List<KeycloakUser>> GetUsersAsync(string query)
+    {
+        var token = await GetClientTokenAsync();
+        
+        var baseUrl = config["Keycloak:BaseUrl"]!;
+        var realm = config["Keycloak:Realm"]!;
+        
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/admin/realms/{realm}/users?search={query}");
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        var users = JsonSerializer.Deserialize<List<KeycloakUser>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        
+        //TODO: Add cursor pagination
+        
+        return users ?? new List<KeycloakUser>();
     }
 
     public override async Task<StringBaseResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
@@ -62,6 +82,32 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
         {
             var error = await response.Content.ReadAsStringAsync();
             throw new RpcException(new Status(StatusCode.Internal, error));
+        }
+        
+        if (response.Headers.Location is null)
+            throw new RpcException(new Status(StatusCode.Internal, "Cannot find Location header in response"));
+
+        var locationHeader = response.Headers.Location.ToString();
+        var userId = locationHeader.Substring(locationHeader.LastIndexOf('/') + 1);
+        try
+        {
+            var user = new User
+            {
+                Id = Guid.Parse(userId),
+                Username = request.Username,
+                Avatar = request.Avatar,
+                Gender = request.Gender,
+                DateOfBirth = request.Dob.ToDateTime()
+            };
+
+            await unitOfWork.Repository<User>().AddAsync(user);
+            await unitOfWork.SaveChangesAsync();
+        }
+        catch (Exception dbEx)
+        {
+            await DeleteUserFromKeycloakAsync(userId);
+            
+            throw new RpcException(new Status(StatusCode.Internal, $"Database error: {dbEx.Message}"));
         }
 
         return new StringBaseResponse
@@ -102,6 +148,27 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
         var tokenObj = JsonSerializer.Deserialize<JsonElement>(content);
         return tokenObj.GetProperty("access_token").GetString();
     }
+    
+    private async Task DeleteUserFromKeycloakAsync(string userId)
+    {
+        var realm = config["Keycloak:Realm"]!;
+        var baseUrl = config["Keycloak:BaseUrl"]!;
+        var clientToken = await GetClientTokenAsync();
+
+        if (string.IsNullOrEmpty(clientToken))
+            throw new RpcException(new Status(StatusCode.Internal, "Failed to get client token"));
+
+        var httpRequest = new HttpRequestMessage(HttpMethod.Delete, $"{baseUrl}/admin/realms/{realm}/users/{userId}");
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", clientToken);
+
+        var response = await httpClient.SendAsync(httpRequest);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new RpcException(new Status(StatusCode.Internal, error));
+        }
+    }
 
     public override async Task<StringBaseResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
     {
@@ -127,7 +194,7 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
         };
     }
 
-    public override async Task<StringBaseResponse> UpdateUser(UpdateUserRequest request, ServerCallContext context)
+    public override async Task<StringBaseResponse> UpdateUser(UserInfo request, ServerCallContext context)
     {
         var isUserExisted = await unitOfWork.Repository<User>()
             .AnyAsync(u => string.Equals(u.Id.ToString(), request));
@@ -137,12 +204,12 @@ public class UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration 
             throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
         }
 
-        var user = await unitOfWork.Repository<User>().GetByIdAsync(request);
-        user.FirstName = request.FirstName;
-        user.LastName = request.LastName;
-        user.Username = request.Username;
-        user.Email = request.Email;
-        unitOfWork.Repository<User>().Update(user);
+        // var user = await unitOfWork.Repository<User>().FirstOrDefaultAsync(filter: u => u.Username.Equals(request.Username, StringComparison.OrdinalIgnoreCase));
+        // user.FirstName = request.FirstName;
+        // user.LastName = request.LastName;
+        // user.Username = request.Username;
+        // user.Email = request.Email;
+        // unitOfWork.Repository<User>().Update(user);
 
         return new StringBaseResponse
         {

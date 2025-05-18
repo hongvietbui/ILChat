@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package msg;
+option csharp_namespace = "ILChat";
+
+import "user.proto";
+
+message MessageDto {
+  string id = 1;
+  string content = 2;
+  string sender_id = 3;
+  user.UserInfo sender = 4;
+  string timestamp = 5;
+}
+
+message FetchMessagesRequest {
+  string conversation_id = 1;
+}
+
+message FetchMessagesResponse {
+  repeated MessageDto messages = 1;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string content = 2;
+}
+
+message SendMessageResponse {
+  MessageDto message = 1;
+}
+
+service MessageService {
+  rpc FetchMessages(FetchMessagesRequest) returns (FetchMessagesResponse);
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+}
